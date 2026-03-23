@@ -100,3 +100,21 @@ light_indirect_energy = 0.5
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_arena")
+
+[node name="Bleachers" type="Node3D" parent="."]
+
+[node name="LeftTier1" type="CSGBox3D" parent="Bleachers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0.5, 0)
+size = Vector3(1, 1, 16)
+
+[node name="LeftTier2" type="CSGBox3D" parent="Bleachers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 1.5, 0)
+size = Vector3(1, 1, 16)
+
+[node name="RightTier1" type="CSGBox3D" parent="Bleachers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.5, 0.5, 0)
+size = Vector3(1, 1, 16)
+
+[node name="RightTier2" type="CSGBox3D" parent="Bleachers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 1.5, 0)
+size = Vector3(1, 1, 16)
