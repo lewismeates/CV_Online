@@ -1,8 +1,10 @@
-[gd_scene format=3 uid="uid://c6abcdefg0061"]
+[gd_scene load_steps=2 format=3 uid="uid://c6abcdefg0061"]
+
+[ext_resource type="PackedScene" uid="uid://court1234567" path="res://src/scenes/CourtEnvironment.tscn" id="1_court"]
 
 [node name="Main" type="Node3D"]
 
-[node name="Court" type="Node3D" parent="."]
+[node name="CourtEnvironment" parent="." instance=ExtResource("1_court")]
 
 [node name="GameManager" type="Node" parent="."]
 
