@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://c6abcdefg0061"]
+
+[node name="Main" type="Node3D"]
+
+[node name="Court" type="Node3D" parent="."]
+
+[node name="GameManager" type="Node" parent="."]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="TeamManager" type="Node" parent="."]
