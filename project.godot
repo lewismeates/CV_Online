@@ -17,3 +17,7 @@ config/features=PackedStringArray("4.3", "Forward Plus")
 [dotnet]
 
 project/assembly_name="NBA 2K-Style Basketball"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
