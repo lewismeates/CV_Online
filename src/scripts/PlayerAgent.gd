@@ -7,8 +7,10 @@ class_name PlayerAgent
 @export var max_speed: float = 6.0
 @export var acceleration: float = 12.0
 @export var friction: float = 14.0
+@export var rotation_speed: float = 10.0
 
 @onready var torso_mesh: CSGBox3D = $Armature/Torso/TorsoMesh
+@onready var anim_tree: AnimationTree = $AnimationTree
 @onready var number_front: Label3D = $Armature/Torso/NumberFront
 @onready var number_back: Label3D = $Armature/Torso/NumberBack
 
@@ -37,3 +39,11 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= 9.8 * delta
 		
 	move_and_slide()
+	
+	if move_dir != Vector3.ZERO:
+		var target_angle := atan2(velocity.x, velocity.z)
+		rotation.y = lerp_angle(rotation.y, target_angle, rotation_speed * delta)
+		
+	if anim_tree:
+		var current_speed := Vector2(velocity.x, velocity.z).length()
+		anim_tree.set("parameters/blend_position", current_speed / max_speed)
