@@ -1,7 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://court1234567"]
+[gd_scene load_steps=3 format=3 uid="uid://court1234567"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.76, 0.54, 0.35, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_line"]
+albedo_color = Color(1, 1, 1, 1)
 
 [node name="CourtEnvironment" type="Node3D"]
 
@@ -10,3 +13,46 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
 use_collision = true
 size = Vector3(15, 0.2, 14)
 material = SubResource("StandardMaterial3D_floor")
+
+[node name="Baseline" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 7)
+size = Vector3(15, 0.01, 0.05)
+material = SubResource("StandardMaterial3D_line")
+
+[node name="HalfCourtLine" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, -7)
+size = Vector3(15, 0.01, 0.05)
+material = SubResource("StandardMaterial3D_line")
+
+[node name="LeftSideline" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0.01, 0)
+size = Vector3(0.05, 0.01, 14)
+material = SubResource("StandardMaterial3D_line")
+
+[node name="RightSideline" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0.01, 0)
+size = Vector3(0.05, 0.01, 14)
+material = SubResource("StandardMaterial3D_line")
+
+[node name="KeyLeftLine" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.45, 0.01, 4.1)
+size = Vector3(0.05, 0.01, 5.8)
+material = SubResource("StandardMaterial3D_line")
+
+[node name="KeyRightLine" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.45, 0.01, 4.1)
+size = Vector3(0.05, 0.01, 5.8)
+material = SubResource("StandardMaterial3D_line")
+
+[node name="FreeThrowLine" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 1.2)
+size = Vector3(4.9, 0.01, 0.05)
+material = SubResource("StandardMaterial3D_line")
+
+[node name="ThreePointArc" type="CSGTorus3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 5.425)
+inner_radius = 6.7
+outer_radius = 6.75
+sides = 32
+ring_sides = 6
+material = SubResource("StandardMaterial3D_line")
