@@ -206,6 +206,18 @@ tracks/0/keys = {
 "values": [Vector3(0, 1.2, 0), Vector3(0, 1.15, 0), Vector3(0, 1.2, 0)]
 }
 
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_idle"]
+animation = &"Idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_run"]
+animation = &"Run"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_locomotion"]
+blend_point_0/node = SubResource("AnimationNodeAnimation_idle")
+blend_point_0/pos = 0.0
+blend_point_1/node = SubResource("AnimationNodeAnimation_run")
+blend_point_1/pos = 1.0
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_player"]
 _data = {
 "Defend": SubResource("Animation_defend"),
@@ -276,3 +288,8 @@ material = SubResource("StandardMaterial3D_skin")
 libraries = {
 "": SubResource("AnimationLibrary_player")
 }
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+tree_root = SubResource("AnimationNodeBlendSpace1D_locomotion")
+anim_player = NodePath("../AnimationPlayer")
+parameters/blend_position = 0.0
