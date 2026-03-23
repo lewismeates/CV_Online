@@ -1,13 +1,22 @@
-[gd_scene load_steps=2 format=3 uid="uid://c6abcdefg0061"]
+[gd_scene format=3 uid="uid://c6abcdefg0061"]
 
 [ext_resource type="PackedScene" uid="uid://court1234567" path="res://src/scenes/CourtEnvironment.tscn" id="1_court"]
+[ext_resource type="PackedScene" uid="uid://dy2dmmbcfjjww" path="res://src/scenes/PlayerAgent.tscn" id="2_player"]
 
-[node name="Main" type="Node3D"]
+[node name="Main" type="Node3D" unique_id=987471831]
 
-[node name="CourtEnvironment" parent="." instance=ExtResource("1_court")]
+[node name="CourtEnvironment" parent="." unique_id=2069906717 instance=ExtResource("1_court")]
 
-[node name="GameManager" type="Node" parent="."]
+[node name="PlayerAgent" parent="." unique_id=382055935 instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 0.99970955, -0.024100663, 0, 0.024100663, 0.99970955, -1.0129384, 0, 2)
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1793596102]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 12, 12)
+projection = 1
+size = 20.0
 
-[node name="TeamManager" type="Node" parent="."]
+[node name="GameManager" type="Node" parent="." unique_id=1601823170]
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1982061302]
+
+[node name="TeamManager" type="Node" parent="." unique_id=2076912240]

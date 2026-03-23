@@ -15,6 +15,16 @@ class_name PlayerAgent
 @onready var number_back: Label3D = $Armature/Torso/NumberBack
 
 func _ready() -> void:
+	if not InputMap.has_action("move_forward"):
+		InputMap.add_action("move_forward")
+		InputMap.add_action("move_backward")
+		InputMap.add_action("move_left")
+		InputMap.add_action("move_right")
+		var w = InputEventKey.new(); w.physical_keycode = KEY_W; InputMap.action_add_event("move_forward", w)
+		var s = InputEventKey.new(); s.physical_keycode = KEY_S; InputMap.action_add_event("move_backward", s)
+		var a = InputEventKey.new(); a.physical_keycode = KEY_A; InputMap.action_add_event("move_left", a)
+		var d = InputEventKey.new(); d.physical_keycode = KEY_D; InputMap.action_add_event("move_right", d)
+		
 	number_front.text = player_number
 	number_back.text = player_number
 	var mat := StandardMaterial3D.new()
@@ -25,7 +35,7 @@ func _ready() -> void:
 	torso_mesh.material = mat
 
 func _physics_process(delta: float) -> void:
-	var input_dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 	var move_dir := Vector3(input_dir.x, 0, input_dir.y).normalized()
 	
 	if move_dir != Vector3.ZERO:

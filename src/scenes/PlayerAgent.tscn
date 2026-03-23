@@ -305,6 +305,7 @@ libraries = {
 }
 
 [node name="AnimationTree" type="AnimationTree" parent="."]
+active = true
 tree_root = SubResource("AnimationNodeBlendSpace1D_locomotion")
 anim_player = NodePath("../AnimationPlayer")
 parameters/blend_position = 0.0
