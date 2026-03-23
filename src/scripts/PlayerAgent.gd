@@ -17,3 +17,19 @@ func _ready() -> void:
 	else:
 		mat.albedo_color = Color(0.2, 0.4, 0.8) # Blue
 	torso_mesh.material = mat
+
+func _physics_process(delta: float) -> void:
+	var input_dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var move_dir := Vector3(input_dir.x, 0, input_dir.y).normalized()
+	
+	if move_dir != Vector3.ZERO:
+		velocity.x = move_dir.x * 6.0
+		velocity.z = move_dir.z * 6.0
+	else:
+		velocity.x = 0.0
+		velocity.z = 0.0
+		
+	if not is_on_floor():
+		velocity.y -= 9.8 * delta
+		
+	move_and_slide()
