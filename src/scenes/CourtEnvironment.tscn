@@ -13,6 +13,9 @@ albedo_color = Color(1, 0.5, 0, 1)
 albedo_color = Color(1, 1, 1, 0.5)
 transparency = 1
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_scoreboard"]
+albedo_color = Color(0.1, 0.1, 0.1, 1)
+
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
 background_color = Color(0.05, 0.05, 0.1, 1)
@@ -118,3 +121,8 @@ size = Vector3(1, 1, 16)
 [node name="RightTier2" type="CSGBox3D" parent="Bleachers"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 1.5, 0)
 size = Vector3(1, 1, 16)
+
+[node name="Scoreboard" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, 0)
+size = Vector3(4, 2, 0.5)
+material = SubResource("StandardMaterial3D_scoreboard")
