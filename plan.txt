@@ -1,0 +1,1091 @@
+NBA 2K-Style Basketball Game
+Master Engineering Plan & Development Specification
+Desktop Application — macOS
+Version 1.0  |  Lead Engineer Document  |  Portfolio Grade
+
+Table of Contents
+
+
+
+1. Master Quote & Project Snapshot
+This document defines the complete engineering strategy for a low-to-mid fidelity 3D NBA 2K-style basketball desktop application targeting macOS. It is authored from the perspective of Lead Software Engineer and is intended to be handed directly to an AI coding agent or a developer to execute story by story.
+
+Effort Estimate Summary
+Category
+Stories
+Story Points
+Project Setup
+7 stories (US-001–007)
+13 pts
+Court & Environment
+8 stories (US-008–015)
+17 pts
+Player Model & Animation
+10 stories (US-016–025)
+27 pts
+Ball Physics
+5 stories (US-026–030)
+14 pts
+Player Movement
+6 stories (US-031–036)
+14 pts
+Dribbling
+6 stories (US-037–042)
+16 pts
+Shooting
+8 stories (US-043–050)
+24 pts
+Passing
+6 stories (US-051–056)
+18 pts
+CPU AI — Offense
+6 stories (US-057–062)
+20 pts
+CPU AI — Defense
+7 stories (US-063–069)
+24 pts
+Game Rules & State
+9 stories (US-070–078)
+23 pts
+HUD & UI
+8 stories (US-079–086)
+14 pts
+Camera
+4 stories (US-087–090)
+8 pts
+Audio
+4 stories (US-091–094)
+6 pts
+Performance & Polish
+6 stories (US-095–100)
+14 pts
+TOTAL
+100 user stories
+256 story points
+
+Velocity Assumptions
+Assuming an AI agent completing ~15–20 story points per session (roughly 6–8 working sessions) and accounting for testing, integration, and debugging cycles:
+	•	Estimated total sessions to MVP (all Critical + High stories): ~10–12 sessions
+	•	Estimated total sessions to full v1.0: ~16–18 sessions
+	•	This is highly compressible with a disciplined agent — stories are designed to be independently shippable
+
+2. Technology Stack Decision
+2.1 Recommended Engine: Godot 4 (GDScript)
+After evaluating the constraints — macOS desktop target, portfolio goal, solo/small team, Python/Java/JS background, 3D requirement, 5v5 gameplay — Godot 4 with GDScript is the clear recommendation. The rationale is as follows:
+
+Why Godot 4 over the alternatives
+Engine
+Pros
+Cons / Why Not
+Godot 4
+Free, open-source, native macOS .app export, excellent 3D pipeline, GDScript similar to Python, huge community, lightweight, fast iteration
+Smaller AAA asset ecosystem than Unity
+Unity 6
+Massive asset store, great 3D, well documented
+Licensing concerns, runtime fee history, heavier overhead, C# learning curve
+Unreal 5
+Best-in-class 3D visuals
+Extreme complexity for a solo portfolio project, C++/Blueprint overhead, massive build sizes
+Pygame / Custom Python
+Familiar language
+Not suited for 3D, no physics engine, massive amount of reinvention required
+JavaFX / LWJGL
+Java familiarity
+No game-ready 3D pipeline, poor macOS integration, near-zero community for game dev
+
+2.2 Language: GDScript
+GDScript is Godot's native scripting language. It is syntactically nearly identical to Python — indentation-based, dynamically typed, and readable. For statically typed, performance-critical systems (physics, AI), GDScript supports optional type annotations. This makes the transition from Python trivial.
+	•	GDScript is to Godot what JavaScript is to the browser — it is the native language and using it avoids all C# integration overhead.
+	•	All Godot 4 documentation, tutorials, and community answers are GDScript-first.
+	•	Optional static typing (var x: float = 0.0) gives performance benefits in hot paths.
+
+2.3 Supporting Tools
+Version Control
+Git + GitHub. One repo, main branch protected, feature branches per story.
+Linting / Formatting
+gdtoolkit (gdlint + gdformat) — the standard Python-based linter for GDScript.
+Unit Testing
+GUT (Godot Unit Testing) — purpose-built for Godot, integrates with GDScript natively.
+CI / CD
+GitHub Actions: run gdlint and GUT on every PR. No merge without green CI.
+Asset Pipeline
+Blender (free) for low-poly mesh creation and rigging. Export to .glb for Godot import.
+3D Assets
+MixamoFuse for base character rig, manually retopologised to <500 tris. Procedural textures in Godot.
+Physics
+Godot 4 built-in physics (Jolt physics backend for accuracy — enable in Project Settings).
+Navigation / AI
+Godot NavigationServer3D with NavMeshInstance3D baked on the court.
+Profiling
+Godot built-in profiler + RenderingServer statistics node.
+macOS Export
+Godot export template + Apple codesign + notarisation workflow.
+
+3. Architecture: ECS-Influenced MVC for Game Dev
+3.1 Why Not Pure MVC?
+Classical Model-View-Controller is well-suited to UI applications but breaks down in real-time games for a key reason: the game loop runs 60 times per second, and routing every frame update through a controller creates latency and boilerplate. The game development community has converged on a hybrid approach.
+For this project the recommended pattern is: Godot's Node hierarchy as a natural scene graph, with explicit separation of concerns using a service-locator pattern via Autoloads and a data layer via Resource objects. This gives the readability benefits of MVC with the performance and simplicity of a game-native architecture.
+
+3.2 Architecture Layers
+Autoloads (Singletons)
+GameManager, PossessionManager, ScoreManager, InputManager. These are the 'Controllers'. They own game-wide state and emit signals. No scene depends on another scene directly — they all talk through Autoloads.
+Scene Nodes (Views)
+Court, PlayerMesh, HUD, ShotMeterUI, PassUI. These are the 'Views'. They listen to signals from Autoloads and update their visual state. They own no game logic.
+Resource Objects (Models)
+PlayerData, TeamData, GameConfig. These are the 'Models'. Pure data containers, no Node overhead, serialisable to disk, easily unit-tested.
+Component Scripts
+DribbleController, ShootController, AIBrain, DefenseAgent. Attached to player nodes as child scripts. Stateless where possible — they read from the Model and emit to the Controller.
+Signal Bus
+All cross-system communication goes through Godot signals. No direct node.get_node('/root/X') chains in gameplay code. This is enforced by the linter rule set.
+
+3.3 Scene Tree Structure
+The canonical scene tree for the game is as follows:
+Node
+Responsibility
+Main
+Root scene. Owns everything. Sets up Autoload references.
+  Court
+Static environment: floor, markings, hoop, bleachers. No logic.
+  Ball
+RigidBody3D. BallController script handles possession attach/detach.
+  TeamA (Player)
+Node3D container for 5 PlayerAgent nodes. Controlled by human input.
+    PlayerAgent x5
+CharacterBody3D + PlayerMesh + AnimationTree + DribbleController + ShootController + PassController.
+  TeamB (CPU)
+Node3D container for 5 CPUAgent nodes.
+    CPUAgent x5
+CharacterBody3D + AIBrain + DefenseAgent + NavigationAgent3D.
+  HUD (CanvasLayer)
+ScoreLabel, ClockLabel, ShotClockLabel, ShotMeterUI, PassUI, PossessionArrow.
+  CameraRig
+Node3D parent + Camera3D child. Follows ball with spring arm.
+
+4. Codebase Development Rules
+These rules are non-negotiable. Every story must be implemented in compliance with all of them. They are designed to be enforced automatically where possible (linter, CI) and reviewed manually where not.
+
+4.1 Testing Rules
+	•	Every script that contains logic (not just visual output) must have a corresponding test file in tests/unit/.
+	•	Test files are named test_<script_name>.gd and use the GUT framework.
+	•	Minimum coverage requirement: all public functions, all state transitions, all edge cases listed in acceptance criteria.
+	•	CI will run the full GUT suite headlessly on every push. A failing test blocks the merge.
+	•	Performance tests: any system that runs in _physics_process() must have a benchmark test asserting it completes in < 2ms per frame.
+	•	No story is 'done' until its tests pass on CI. Done = coded + tested + merged.
+
+4.2 Naming Conventions
+Files / Scenes
+snake_case.gd, snake_case.tscn, snake_case.glb
+Classes
+PascalCase — class_name PlayerAgent
+Variables
+snake_case — var shot_quality: float
+Constants
+SCREAMING_SNAKE — const MAX_SPEED: float = 8.0
+Signals
+past_tense_snake — signal shot_released(quality: float)
+Enums
+PascalCase type, SCREAMING_SNAKE values — enum PlayerState { IDLE, DRIBBLING }
+Functions
+snake_case, verb-led — func calculate_shot_arc() -> Vector3
+Test functions
+test_ prefix — func test_shot_quality_returns_zero_on_miss()
+
+4.3 Code Style Rules
+	•	Maximum function length: 30 lines. If longer, extract a helper function.
+	•	Maximum file length: 200 lines. If longer, split into component scripts.
+	•	No magic numbers. Every constant must be named and placed in a Constants.gd autoload or local const block.
+	•	Use static typing on all function signatures and class variables. Dynamic typing is only permitted in genuinely polymorphic contexts.
+	•	All signals must be documented with a one-line comment above the emit() call explaining what triggered it.
+	•	No direct node path access (/root/GameManager). Use autoload references or dependency injection via exported variables.
+	•	Every public function must have a one-line docstring comment above it.
+
+4.4 Git Workflow
+	•	Branch naming: feature/US-XXX-short-description, bugfix/US-XXX-description, chore/description
+	•	Commit messages: US-XXX: <imperative verb> <what changed>  e.g.  US-043: add shot meter fill animation
+	•	One story = one branch = one PR. No batching multiple stories in one PR.
+	•	PRs require: green CI (lint + tests), self-reviewed diff, and a one-line description of what was changed and why.
+	•	main branch is always deployable. Never commit broken code to main.
+	•	Squash merge only — keeps history clean and traceable to story IDs.
+
+4.5 Architecture Rules
+	•	Game logic lives in Autoloads and Component scripts. Scene nodes are dumb — they render state, they do not own it.
+	•	No scene communicates directly with another scene. All cross-scene communication uses signals routed through Autoloads.
+	•	Resource files (.tres) are the single source of truth for all tunable values (speeds, distances, probabilities). No hardcoding gameplay values in scripts.
+	•	The ball is always owned by exactly one entity: a PlayerAgent, CPUAgent, or the physics world. The PossessionManager enforces this as an invariant.
+	•	Every Autoload must implement a reset() method that returns it to a clean state, to support the Restart flow without scene reloads.
+
+4.6 Performance Rules
+	•	Target: 60fps on Apple Silicon M1 or equivalent. All decisions are made with this constraint in mind.
+	•	No per-frame heap allocations in _process() or _physics_process(). Pre-allocate arrays and objects in _ready().
+	•	CPU AI decisions run at 10Hz (every 6 physics frames), not 60Hz. Use a timer-gated update pattern.
+	•	Particle systems use pooling (US-096). No instantiate() calls in hot paths.
+	•	3D player meshes must stay under 500 triangles for primary LOD, 150 triangles for distant LOD.
+
+5. Sprint Plan (Recommended Execution Order)
+Stories are grouped into sprints by dependency order. Each sprint builds on the last and produces a testable, runnable increment. An AI agent should execute one sprint at a time and run tests before proceeding.
+
+Sprint 1 — Foundation
+US-001 through US-007. Project setup, repo, CI, test framework. Nothing renders yet. Goal: green CI pipeline.
+Sprint 2 — See the Court
+US-008 through US-015, US-026, US-087. Court renders, hoop is in scene, ball exists, camera works. Goal: something to look at.
+Sprint 3 — A Player Exists
+US-016 through US-025, US-031 through US-033. One low-poly player on court, can move, has idle and run animations. Goal: first human control.
+Sprint 4 — Ball in Hand
+US-027 through US-029, US-037 through US-040. Player can pick up the ball, dribble while moving. Goal: core possession loop.
+Sprint 5 — Shoot the Ball
+US-043 through US-050, US-079, US-080. Shot meter UI, shooting arc physics, rim collision. Goal: can score points.
+Sprint 6 — Pass the Ball
+US-051 through US-056, US-082. Pass UI, chest pass, auto-catch. Goal: ball movement between players.
+Sprint 7 — CPU Enters
+US-057 through US-062. CPU offense: NavAgent, drive, space floor, shoot. Goal: CPU can score.
+Sprint 8 — CPU Defends
+US-063 through US-069. Man-to-man defense, closeout, steal, contest shot. Goal: playable 1-half game.
+Sprint 9 — Rules & State
+US-070 through US-078. GameManager, clocks, possession changes, inbound, game over. Goal: full game loop.
+Sprint 10 — Polish
+US-083 through US-086, US-088 through US-094, US-095 through US-100. HUD polish, audio, performance, export. Goal: shippable portfolio build.
+
+6. Full User Story Backlog (100 Stories)
+All 100 user stories are listed below in full. Priority levels: Critical (must ship in MVP), High (should ship in v1.0), Medium (nice to have), Low (stretch goal).
+
+ID
+Epic
+Story Title
+As a...
+I want to...
+So that...
+Pts
+Priority
+US-001
+Project Setup
+Project scaffolding & repo init
+developer
+initialise the Godot 4 project with correct folder structure and version control
+all future work has a clean, consistent foundation
+2
+Critical
+US-002
+Project Setup
+Define folder architecture
+developer
+establish src/ layout: scenes/, scripts/, assets/, tests/, docs/
+the codebase is navigable and predictable for any contributor
+1
+Critical
+US-003
+Project Setup
+Configure GDScript linter and formatter
+developer
+set up gdtoolkit (gdlint + gdformat) in pre-commit hooks
+all committed code meets a consistent style standard automatically
+2
+High
+US-004
+Project Setup
+Establish CI pipeline (GitHub Actions)
+developer
+run linting and unit tests on every push and PR
+regressions are caught before merging
+3
+High
+US-005
+Project Setup
+Set up GUT unit test framework
+developer
+install and configure Godot Unit Testing (GUT) with a tests/ directory
+all logic can be covered by automated tests from day one
+2
+Critical
+US-006
+Project Setup
+Create base scene hierarchy
+developer
+a Main scene that owns Court, GameManager, HUD, and TeamManager nodes
+the scene tree is deterministic and easy to reason about
+2
+Critical
+US-007
+Project Setup
+Asset pipeline documentation
+developer
+a CONTRIBUTING.md that defines how 3D assets are imported, named, and scaled
+assets are consistent across the project and importable without manual tweaks
+1
+Medium
+US-008
+Court & Environment
+Static half-court mesh
+player
+to see a 3D half-court floor with hardwood texture
+the play area looks authentic and immersive
+3
+Critical
+US-009
+Court & Environment
+Court markings (lines, key, arc)
+player
+visible three-point arc, key, free-throw line, and out-of-bounds lines on the court
+I can read spatial context and make informed play decisions
+2
+High
+US-010
+Court & Environment
+Backboard, rim, and net
+player
+a 3D backboard, orange rim, and net mesh at regulation height
+the shooting target is physically accurate and visually clear
+3
+Critical
+US-011
+Court & Environment
+Arena lighting setup
+player
+overhead arena-style lighting with directional and fill lights
+the court looks stadium-quality without hurting performance
+2
+High
+US-012
+Court & Environment
+Crowd and bleacher backdrop
+player
+low-poly static crowd meshes in bleachers surrounding the court
+the game world feels like a real game rather than an empty gym
+2
+Medium
+US-013
+Court & Environment
+Scoreboard mesh in scene
+player
+a visible 3D scoreboard above the court that connects to game state
+score and clock are readable in-world as well as in the HUD
+2
+Medium
+US-014
+Court & Environment
+Out-of-bounds detection volume
+developer
+Area3D collision volumes defining in-bounds and out-of-bounds zones
+the game can detect and respond to ball and player positions accurately
+2
+Critical
+US-015
+Court & Environment
+Collision layers & masks defined
+developer
+a documented collision layer map (court, players, ball, sensors)
+physics interactions are deterministic and debuggable
+1
+Critical
+US-016
+Player & Animation
+Low-poly player base mesh
+player
+a rigged low-poly humanoid player model (~500 tris) in Godot
+the game runs at 60fps with 10 players on screen simultaneously
+5
+Critical
+US-017
+Player & Animation
+Idle animation
+player
+players play a breathing/weight-shifting idle loop when stationary
+characters feel alive even when not moving
+2
+High
+US-018
+Player & Animation
+Run/jog animation
+player
+a smooth run cycle that scales with movement speed
+player locomotion feels responsive and realistic
+3
+Critical
+US-019
+Player & Animation
+Dribble animation (low + high)
+player
+a dribbling animation that syncs with ball bounce timing
+visual feedback confirms the player is in possession
+3
+Critical
+US-020
+Player & Animation
+Shoot animation (release + follow-through)
+player
+a two-phase shoot animation: windup and release
+the shot meter maps to a visually meaningful moment in the animation
+4
+Critical
+US-021
+Player & Animation
+Pass animation
+player
+a chest-pass throw animation triggered on pass input
+passing feels snappy and readable by the user
+2
+High
+US-022
+Player & Animation
+Defensive slide animation
+player
+a lateral defensive slide for CPU and human defenders
+defensive positioning is visually distinct from running
+2
+High
+US-023
+Player & Animation
+AnimationTree blend setup
+developer
+a Godot AnimationTree with blend spaces wiring all locomotion states
+transitions between animations are smooth with no popping
+3
+High
+US-024
+Player & Animation
+Team jersey colour differentiation
+player
+home team (blue) and away team (red) jersey colours on respective meshes
+I can instantly distinguish my team from the CPU team
+1
+High
+US-025
+Player & Animation
+Player number texture on jersey
+player
+each player's number rendered on their jersey texture
+I can identify individual players on the court
+2
+Medium
+US-026
+Ball Physics
+Basketball RigidBody3D setup
+developer
+a basketball implemented as a RigidBody3D with correct mass, bounciness, and friction
+the ball behaves naturally under physics simulation
+3
+Critical
+US-027
+Ball Physics
+Ball dribble controller
+developer
+a script that applies downward impulses to simulate dribbling, synced to dribble animation frames
+dribbling is physically simulated rather than keyframed
+4
+Critical
+US-028
+Ball Physics
+Ball possession attach/detach
+developer
+the ball snaps to a player's hand node when in possession and releases on pass or shot
+ball handoff between players and physics is seamless
+3
+Critical
+US-029
+Ball Physics
+Ball rolling and out-of-bounds bounce
+player
+the ball rolls along the floor and bounces off the boundary walls naturally
+dead-ball scenarios feel grounded in physics
+2
+Medium
+US-030
+Ball Physics
+Ball trail visual effect
+player
+a short motion trail on the ball during fast movement and shots
+fast-moving balls are easy to track visually
+2
+Low
+US-031
+Player Movement
+Human player movement controller
+player
+WASD/arrow key movement for my controlled player at adjustable speed
+I can move around the court fluidly and responsively
+3
+Critical
+US-032
+Player Movement
+Player acceleration and deceleration curve
+player
+movement that ramps up and eases off rather than starting/stopping instantly
+the player feels weighty and basketball-like, not floaty
+2
+High
+US-033
+Player Movement
+Player facing direction (look at ball/basket)
+developer
+the controlled player automatically faces toward the basket when they have the ball
+animations and aiming are always contextually correct
+2
+High
+US-034
+Player Movement
+Player switching (cycle through teammates)
+player
+press Tab to switch which teammate I control when off-ball
+I can reposition any player on my team strategically
+3
+High
+US-035
+Player Movement
+Player stamina system (basic)
+player
+sprint speed to reduce slightly over time when holding sprint, recovering when walking
+movement has a strategic dimension and feels human
+2
+Low
+US-036
+Player Movement
+Collision between players
+player
+players collide and push each other slightly when paths intersect
+physical contact between players feels believable
+2
+Medium
+US-037
+Dribbling
+Ball possession state machine
+developer
+a PlayerState enum (IDLE, DRIBBLING, HOLDING, SHOOTING, PASSING) driving all ball-related behaviour
+all game logic branches from a single predictable state
+3
+Critical
+US-038
+Dribbling
+Pick up loose ball
+player
+my player automatically picks up the ball when walking within range of it
+ball recovery from turnovers feels natural
+2
+Critical
+US-039
+Dribbling
+Dribble while moving
+player
+the player dribbles the ball while moving in any direction
+I can drive toward the basket while keeping possession
+3
+Critical
+US-040
+Dribbling
+Dribble speed cap (can't run full speed while dribbling)
+player
+movement speed to reduce slightly while dribbling compared to off-ball running
+driving realistically costs pace compared to moving without the ball
+1
+Medium
+US-041
+Dribbling
+Crossover move (input triggered)
+player
+pressing Q triggers a crossover dribble animation and brief direction change
+I can shake a defender with a skilled move
+3
+Medium
+US-042
+Dribbling
+Turnover on defender steal contact
+developer
+the ball to transfer to a defender if their steal zone overlaps the dribbling player for >0.3s
+defense has a meaningful mechanical impact on possession
+3
+High
+US-043
+Shooting
+Shot meter UI element
+player
+a vertical or arc bar that fills while holding the shoot button
+I have a timing-based skill mechanic for scoring
+3
+Critical
+US-044
+Shooting
+Shot release timing window
+player
+a green zone on the shot meter; releasing in it gives a perfect shot
+there is a learnable skill ceiling for shooting accuracy
+3
+Critical
+US-045
+Shooting
+Shot arc physics calculation
+developer
+the shot to fire a physics projectile with arc calculated from player position, facing, and shot quality
+shot trajectory is deterministic, physically consistent, and fair
+4
+Critical
+US-046
+Shooting
+Rim collision and in/out logic
+developer
+ball-on-rim collision to determine whether the shot goes in or bounces out based on shot quality + randomness
+shooting outcomes feel fair but not purely scripted
+4
+Critical
+US-047
+Shooting
+Two-point vs three-point detection
+player
+the game to detect whether I shot from inside or outside the three-point line and award the correct points
+shot location is strategically meaningful
+2
+Critical
+US-048
+Shooting
+Shot quality affected by defender proximity
+developer
+a defender within 1m of the shooter to reduce the effective shot quality window
+defense has a direct impact on opponent shooting accuracy
+3
+High
+US-049
+Shooting
+Layup detection and animation near basket
+player
+when shooting within 1.5m of the basket, the game triggers a layup animation and near-certain make
+close-range plays are rewarded and feel distinct from jump shots
+3
+High
+US-050
+Shooting
+Shot feedback (swish / clank / off-glass)
+player
+distinct visual and (placeholder) audio cues for swish, rim-in, and miss
+I get clear feedback on my shot outcome
+2
+Medium
+US-051
+Passing
+Pass target selection UI
+player
+pressing E to show numbered icons above each teammate indicating the pass key
+I can choose who to pass to quickly and intuitively
+3
+Critical
+US-052
+Passing
+Chest pass physics projectile
+player
+a chest pass that fires the ball in a straight line to the target teammate
+short-range passing feels crisp and fast
+3
+Critical
+US-053
+Passing
+Lob pass (hold E)
+player
+holding E for >0.3s throws a lob arc pass over defenders
+I can move the ball over a defender to a cutting teammate
+3
+Medium
+US-054
+Passing
+Teammate auto-catch logic
+developer
+a teammate to move toward the incoming ball and auto-catch it if within range
+passes don't require pixel-perfect positioning to succeed
+3
+Critical
+US-055
+Passing
+Interception logic (CPU can read passing lanes)
+developer
+a CPU defender positioned between the passer and target to have a chance of intercepting
+passing into traffic is risky and requires decision-making
+4
+High
+US-056
+Passing
+Pass cancel (tap E again before release)
+player
+to cancel a pending pass by tapping E again before the animation commits
+I don't accidentally force bad passes under pressure
+2
+Medium
+US-057
+CPU AI - Offense
+CPU player base NavAgent setup
+developer
+each CPU player on both teams to have a NavigationAgent3D on the Godot NavMesh
+CPU players can pathfind around the court and each other
+3
+Critical
+US-058
+CPU AI - Offense
+CPU ball-handler drives toward basket
+player
+the CPU ball-handler to drive toward the basket if no defender is in their direct path
+the CPU presents a credible offensive threat
+4
+Critical
+US-059
+CPU AI - Offense
+CPU off-ball players space the floor
+player
+CPU off-ball teammates to spread to designated floor-spacing positions
+the CPU offense doesn't crowd the key, creating passing lanes
+3
+High
+US-060
+CPU AI - Offense
+CPU pass decision (open teammate)
+player
+the CPU to pass if a teammate is open and the ball-handler is being contested
+the CPU feels like a smart team rather than a solo dribbler
+4
+High
+US-061
+CPU AI - Offense
+CPU shot decision (take open shot)
+player
+the CPU to shoot when open within shooting range and the shot quality is above a threshold
+the CPU scores realistically rather than endlessly dribbling
+3
+Critical
+US-062
+CPU AI - Offense
+CPU layup attempt near basket
+player
+the CPU to attempt a layup when they drive within layup range
+the CPU uses high-percentage scoring opportunities
+2
+High
+US-063
+CPU AI - Defense
+Man-to-man assignment system
+developer
+a DefenseManager that assigns each CPU defender a specific offensive player to guard
+man-to-man defense is structured and prevents double-covering
+4
+Critical
+US-064
+CPU AI - Defense
+Defender closes out on ball-handler
+player
+the assigned CPU defender to move toward and maintain pressure on the ball-handler
+I cannot stand still and take easy open shots
+4
+Critical
+US-065
+CPU AI - Defense
+Defender stays between assignment and basket
+developer
+each defender to position in the passing lane between their mark and the basket
+defense is positionally intelligent and not just reactive
+3
+High
+US-066
+CPU AI - Defense
+Defender contest shot (move toward shooter)
+player
+the closest CPU defender to rush the shooter when they enter the shooting animation
+shots are contested and require timing to execute
+3
+Critical
+US-067
+CPU AI - Defense
+Steal attempt logic
+player
+the CPU defender to attempt a steal when within range of the dribbler for sustained time
+careless dribbling is punished
+3
+High
+US-068
+CPU AI - Defense
+Defensive rebound positioning
+player
+CPU defenders to box out and move toward the basket on a shot attempt
+the CPU competes for offensive rebounds
+3
+High
+US-069
+CPU AI - Defense
+Defender recovery after beat
+developer
+a defender who has been beaten by a drive to recover toward the basket rather than chasing laterally
+the CPU defense prevents easy layups intelligently
+2
+Medium
+US-070
+Game Rules
+GameManager state machine (pre-game, in-play, dead-ball, scored, game-over)
+developer
+a central GameManager autoload managing the top-level game state enum
+all systems respond to game state changes from a single source of truth
+3
+Critical
+US-071
+Game Rules
+Score tracking (player and CPU)
+player
+scores to increment correctly on confirmed baskets for both sides
+I always know the current score
+2
+Critical
+US-072
+Game Rules
+Shot clock (24-second)
+player
+a 24-second shot clock that resets on possession change and triggers turnover on expiry
+offensive play must be decisive and strategic
+3
+High
+US-073
+Game Rules
+Game clock (4 x 2-min quarters)
+player
+a 2-minute game clock per quarter that pauses during dead-ball situations
+the game has a natural pacing and endpoint
+2
+High
+US-074
+Game Rules
+Possession changes on make, miss, out-of-bounds
+developer
+a PossessionManager that correctly reassigns ball possession for all dead-ball scenarios
+the game flows through all situations without manual intervention
+4
+Critical
+US-075
+Game Rules
+Inbound pass after scored basket
+player
+ball to reset behind the baseline for a CPU inbound pass after the player scores
+the transition back to CPU offense feels seamless
+3
+High
+US-076
+Game Rules
+Game over screen
+player
+a game-over screen showing final score and a restart option when the clock expires
+there is a clear end state to the game
+2
+High
+US-077
+Game Rules
+Half-time reset (player positions)
+developer
+players to reset to starting positions at half-time
+each half starts cleanly
+1
+Medium
+US-078
+Game Rules
+Out-of-bounds call and reset
+player
+the game to detect and call out-of-bounds, displaying who caused it and resetting to inbound
+boundary violations are handled correctly
+3
+High
+US-079
+HUD & UI
+Main HUD: score, quarter, clocks
+player
+a persistent on-screen HUD showing score, quarter, game clock, and shot clock
+all critical game info is visible at a glance
+3
+Critical
+US-080
+HUD & UI
+Shot meter HUD element (context-sensitive)
+player
+the shot meter to appear above the shooting player only during the shoot input hold
+it's contextually relevant and doesn't clutter the screen otherwise
+2
+Critical
+US-081
+HUD & UI
+Possession indicator arrow
+player
+an arrow above the currently active ball-holder
+I can always see who has the ball
+1
+High
+US-082
+HUD & UI
+Pass target icons on teammates
+player
+numbered icons (1-4) above teammates when pass mode is active
+pass selection is fast and unambiguous
+2
+Critical
+US-083
+HUD & UI
+Player name/number labels (toggle)
+player
+to press L to toggle player name labels above all players
+I can identify players without cluttering the view by default
+1
+Low
+US-084
+HUD & UI
+Main menu (New Game, Quit)
+player
+a simple main menu with New Game and Quit options
+the application has a proper entry point
+2
+High
+US-085
+HUD & UI
+Pause menu (Resume, Restart, Quit)
+player
+pressing Escape to pause the game and show a pause menu
+I can take a break or restart without force-quitting
+2
+High
+US-086
+HUD & UI
+Score flash notification (+2 / +3)
+player
+a brief animated score popup over the basket when a shot goes in
+scoring moments have immediate positive feedback
+1
+Medium
+US-087
+Camera
+Isometric follow camera (follows ball)
+player
+a fixed-angle isometric camera that pans to follow the ball around the half-court
+I always have the best view of the play without managing the camera
+3
+Critical
+US-088
+Camera
+Camera zoom (scroll wheel)
+player
+to zoom in/out with the scroll wheel within defined limits
+I can adjust the view to my preference
+2
+Medium
+US-089
+Camera
+Camera shake on dunk/big score
+player
+a brief camera shake on a slam dunk or a clutch three-pointer
+big plays feel punchy and exciting
+1
+Low
+US-090
+Camera
+Broadcast camera angle on shot (optional cutaway)
+player
+the camera to briefly cut to a low broadcast angle when a shot is in the air
+big shots feel cinematic
+2
+Low
+US-091
+Audio
+Placeholder audio bus setup
+developer
+Godot AudioStreamPlayer nodes for SFX and music buses with volume controls
+audio is structured and ready for real assets without code changes
+1
+Medium
+US-092
+Audio
+Ball bounce SFX
+player
+a dribble sound that triggers on each ball-court contact
+dribbling has satisfying tactile audio feedback
+2
+High
+US-093
+Audio
+Crowd reaction SFX (score, miss, steal)
+player
+crowd cheers on score and groans on a bad miss
+the arena atmosphere reacts to the game in real time
+2
+Medium
+US-094
+Audio
+Whistle SFX on dead ball
+player
+a referee whistle sound on out-of-bounds and shot clock violations
+dead-ball situations are clearly signalled to the player
+1
+Medium
+US-095
+Performance
+LOD (Level of Detail) on player meshes
+developer
+player meshes to switch to a lower-poly LOD when distant from the camera
+the game maintains 60fps with 10 players active
+2
+Medium
+US-096
+Performance
+Object pooling for ball trail particles
+developer
+a particle pool for ball trail effects to avoid runtime instantiation
+visual effects don't cause frame drops during fast play
+2
+Medium
+US-097
+Performance
+Profiling baseline (60fps target test)
+developer
+a GUT performance test that asserts the main game scene runs at >= 60fps in headless mode
+performance regressions are caught automatically
+2
+High
+US-098
+Performance
+Settings screen (resolution, quality preset)
+player
+a settings screen with resolution and quality preset options (Low / Medium / High)
+the game is accessible on a range of macOS hardware
+3
+Medium
+US-099
+Performance
+macOS .app export and code signing
+player
+a working .app bundle signed for macOS 13+ that opens without security warnings
+the portfolio build is shareable without technical hurdles
+3
+High
+US-100
+Performance
+README and portfolio documentation
+developer
+a polished README with screenshots, feature list, controls, and build instructions
+the project is presentable as a portfolio piece on GitHub
+2
+High
+
+7. Definition of Done
+A user story is considered Done only when ALL of the following criteria are met:
+
+	•	The feature behaves as described in the 'I want to...' and 'So that...' fields when tested manually in the Godot editor.
+	•	All acceptance criteria listed in the story have been verified.
+	•	At least one automated GUT test covers the core logic path of the story.
+	•	gdlint reports zero warnings on all files touched by the story.
+	•	The feature runs at >= 60fps on a test scene with all 10 players active (verified by profiler).
+	•	The branch has been merged to main via a squash-merge PR with green CI.
+	•	If the story changes a public API (signal, function signature, Resource schema), CHANGELOG.md has been updated.
+
+8. Key Risks & Mitigations
+3D character rigging complexity
+Use Mixamo's free auto-rigger for the base skeleton. Retopologise in Blender to hit the 500-tri budget. This is the highest-effort asset task — do it in Sprint 3 and block nothing else on it.
+CPU AI pathfinding on a small court
+Godot's NavigationServer3D can struggle with dense, small meshes. Bake a simplified NavMesh with generous agent radius. AI runs at 10Hz to mask any pathfinding latency.
+Ball physics feel
+Basketball physics are notoriously hard to tune. Reserve 1 full session for physics parameter tuning after Sprint 4. Key values (bounciness, friction, dribble impulse) all live in a PhysicsConfig.tres resource for easy iteration.
+macOS notarisation
+Apple's notarisation process requires a paid Developer account ($99/yr). If unavailable, ship with a README note instructing users to right-click > Open to bypass Gatekeeper. Plan for this in Sprint 10.
+Animation state machine complexity
+With idle, run, dribble, shoot, pass, and defend, the AnimationTree can become a spaghetti graph. Design the blend tree in Sprint 3 before any animations are wired, and document it in a diagram committed to docs/.
+
+9. Agent Execution Instructions
+When handing this document to a coding agent, the following instructions apply:
+	•	Execute one sprint at a time. Do not begin Sprint N+1 until all Critical and High stories in Sprint N have green tests.
+	•	After each story, run gdlint on all modified files. Do not proceed if lint fails.
+	•	After each sprint, run the full GUT test suite. Paste the result into a SPRINT_LOG.md file in the repo root.
+	•	If a story's acceptance criteria are ambiguous, implement the most conservative interpretation and add a TODO comment with the ambiguity for human review.
+	•	All .tres resource files for tunable values should be created in Sprint 1 (as empty shells) and populated as the relevant stories are implemented.
+	•	Do not skip Low priority stories permanently — flag them as deferred in a DEFERRED.md file if time-constrained.
+	•	Every commit message must reference the story ID (e.g. US-043: add shot meter fill animation). This is enforced by a commit-msg git hook set up in US-001.

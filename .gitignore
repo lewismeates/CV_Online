@@ -1,0 +1,8 @@
+# Godot 4+ specific ignores
+.godot/
+!*.godot
+*.translation
+*.gdignore
+
+# Godot-specific macOS files
+.DS_Store
