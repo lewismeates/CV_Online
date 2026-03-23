@@ -18,6 +18,13 @@ config/features=PackedStringArray("4.3", "Forward Plus")
 
 project/assembly_name="NBA 2K-Style Basketball"
 
+[autoload]
+
+GameManager="*res://src/scripts/GameManager.gd"
+PossessionManager="*res://src/scripts/PossessionManager.gd"
+ScoreManager="*res://src/scripts/ScoreManager.gd"
+InputManager="*res://src/scripts/InputManager.gd"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
