@@ -28,3 +28,10 @@ InputManager="*res://src/scripts/InputManager.gd"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[layer_names]
+
+3d_physics/layer_1="Court"
+3d_physics/layer_2="Players"
+3d_physics/layer_3="Ball"
+3d_physics/layer_4="Sensors"
