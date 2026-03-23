@@ -1,0 +1,67 @@
+[gd_scene load_steps=4 format=3 uid="uid://player1234567"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_skin"]
+albedo_color = Color(0.8, 0.6, 0.4, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jersey"]
+albedo_color = Color(0.2, 0.4, 0.8, 1)
+
+[node name="PlayerAgent" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="Armature" type="Node3D" parent="."]
+
+[node name="Torso" type="Node3D" parent="Armature"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+
+[node name="TorsoMesh" type="CSGBox3D" parent="Armature/Torso"]
+size = Vector3(0.5, 0.8, 0.3)
+material = SubResource("StandardMaterial3D_jersey")
+
+[node name="Head" type="Node3D" parent="Armature/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+
+[node name="HeadMesh" type="CSGBox3D" parent="Armature/Torso/Head"]
+size = Vector3(0.3, 0.3, 0.3)
+material = SubResource("StandardMaterial3D_skin")
+
+[node name="Arm_L" type="Node3D" parent="Armature/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0.3, 0)
+
+[node name="ArmLMesh" type="CSGBox3D" parent="Armature/Torso/Arm_L"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.35, 0)
+size = Vector3(0.15, 0.7, 0.15)
+material = SubResource("StandardMaterial3D_skin")
+
+[node name="Arm_R" type="Node3D" parent="Armature/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.3, 0)
+
+[node name="ArmRMesh" type="CSGBox3D" parent="Armature/Torso/Arm_R"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.35, 0)
+size = Vector3(0.15, 0.7, 0.15)
+material = SubResource("StandardMaterial3D_skin")
+
+[node name="Leg_L" type="Node3D" parent="Armature/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, -0.4, 0)
+
+[node name="LegLMesh" type="CSGBox3D" parent="Armature/Torso/Leg_L"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0)
+size = Vector3(0.2, 0.8, 0.2)
+material = SubResource("StandardMaterial3D_skin")
+
+[node name="Leg_R" type="Node3D" parent="Armature/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, -0.4, 0)
+
+[node name="LegRMesh" type="CSGBox3D" parent="Armature/Torso/Leg_R"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0)
+size = Vector3(0.2, 0.8, 0.2)
+material = SubResource("StandardMaterial3D_skin")

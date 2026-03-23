@@ -8,15 +8,15 @@
 
 config_version=5
 
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
 [application]
 
 config/name="NBA 2K-Style Basketball"
 run/main_scene="res://src/scenes/main.tscn"
-config/features=PackedStringArray("4.3", "Forward Plus")
-
-[dotnet]
-
-project/assembly_name="NBA 2K-Style Basketball"
+config/features=PackedStringArray("4.6", "Forward Plus")
 
 [autoload]
 
@@ -24,6 +24,10 @@ GameManager="*res://src/scripts/GameManager.gd"
 PossessionManager="*res://src/scripts/PossessionManager.gd"
 ScoreManager="*res://src/scripts/ScoreManager.gd"
 InputManager="*res://src/scripts/InputManager.gd"
+
+[dotnet]
+
+project/assembly_name="NBA 2K-Style Basketball"
 
 [editor_plugins]
 
