@@ -16,6 +16,12 @@ transparency = 1
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_scoreboard"]
 albedo_color = Color(0.1, 0.1, 0.1, 1)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_out_z"]
+size = Vector3(20, 10, 3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_out_x"]
+size = Vector3(3, 10, 20)
+
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
 background_color = Color(0.05, 0.05, 0.1, 1)
@@ -126,3 +132,23 @@ size = Vector3(1, 1, 16)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, 0)
 size = Vector3(4, 2, 0.5)
 material = SubResource("StandardMaterial3D_scoreboard")
+
+[node name="OutOfBoundsZone" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 6
+
+[node name="BaselineOut" type="CollisionShape3D" parent="OutOfBoundsZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 8.5)
+shape = SubResource("BoxShape3D_out_z")
+
+[node name="HalfcourtOut" type="CollisionShape3D" parent="OutOfBoundsZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -8.5)
+shape = SubResource("BoxShape3D_out_z")
+
+[node name="LeftOut" type="CollisionShape3D" parent="OutOfBoundsZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1, 0)
+shape = SubResource("BoxShape3D_out_x")
+
+[node name="RightOut" type="CollisionShape3D" parent="OutOfBoundsZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1, 0)
+shape = SubResource("BoxShape3D_out_x")
